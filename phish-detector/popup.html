@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>offensive.bloom</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg:#0a0a0f; --bg2:#111118; --bg3:#1a1a24;
+    --bloom:#0066ff; --bloom2:#4d9fff;
+    --safe:#00ff88; --warn:#ffaa00; --danger:#ff2d2d;
+    --text:#e8e8f0; --muted:#666680;
+    --border:rgba(0,102,255,0.2);
+  }
+  body { width:340px; min-height:520px; background:var(--bg); color:var(--text); font-family:'Space Mono',monospace; overflow:hidden; position:relative; }
+  body::before { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; background:radial-gradient(circle,rgba(0,102,255,0.12) 0%,transparent 70%); pointer-events:none; }
+
+  .header { padding:14px 16px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo-img { width:36px; height:36px; border-radius:8px; object-fit:cover; transition:all 0.4s ease; }
+  .logo-img.danger { filter:drop-shadow(0 0 8px rgba(255,45,45,0.8)); }
+  .logo-img.safe-glow { filter:drop-shadow(0 0 8px rgba(0,255,136,0.6)); }
+  .logo-text { font-family:'Syne',sans-serif; font-weight:800; font-size:15px; }
+  .logo-text span { color:var(--bloom); }
+  .made-by { font-size:9px; color:var(--muted); margin-top:2px; }
+  .made-by a { color:var(--bloom2); text-decoration:none; }
+  .version { font-size:10px; color:var(--muted); background:var(--bg3); padding:2px 8px; border-radius:20px; border:1px solid var(--border); }
+  .help-btn { width:22px; height:22px; border-radius:50%; background:var(--bg3); border:1px solid var(--border); color:var(--muted); font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; font-family:'Syne',sans-serif; font-weight:700; }
+  .help-btn:hover { border-color:var(--bloom); color:var(--bloom); }
+  .guide-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; animation:fadeIn 0.2s ease; }
+  .guide-overlay.open { display:flex; flex-direction:column; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .guide-box { background:var(--bg2); border:1px solid var(--border); border-radius:14px; margin:16px; padding:18px; flex:1; overflow-y:auto; }
+  .guide-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .guide-title { font-family:'Syne',sans-serif; font-weight:800; font-size:15px; color:var(--bloom2); }
+  .guide-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; }
+  .guide-close:hover { color:var(--text); }
+  .guide-step { display:flex; gap:12px; margin-bottom:14px; align-items:flex-start; }
+  .guide-num { min-width:24px; height:24px; border-radius:50%; background:rgba(0,102,255,0.15); border:1px solid rgba(0,102,255,0.3); color:var(--bloom2); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; }
+  .guide-step-text { font-size:11px; color:var(--text); line-height:1.7; opacity:0.85; }
+  .guide-step-text strong { color:var(--bloom2); font-weight:700; }
+  .guide-divider { height:1px; background:rgba(255,255,255,0.06); margin:14px 0; }
+  .guide-verdict { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:11px; color:var(--text); }
+  .guide-badge { font-size:9px; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; }
+
+  .section { padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .section-label { font-size:9px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
+  .input-wrap { position:relative; }
+  .input-wrap input { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:9px 52px 9px 12px; color:var(--text); font-family:'Space Mono',monospace; font-size:11px; outline:none; transition:border-color 0.2s; }
+  .input-wrap input:focus { border-color:var(--bloom); }
+  .input-wrap input::placeholder { color:var(--muted); }
+  .save-btn { position:absolute; right:6px; top:50%; transform:translateY(-50%); background:var(--bloom); border:none; border-radius:5px; color:white; font-size:9px; font-family:'Space Mono',monospace; padding:4px 8px; cursor:pointer; font-weight:700; letter-spacing:0.5px; transition:all 0.2s; }
+  .save-btn:hover { opacity:0.85; }
+  .api-status { font-size:10px; margin-top:6px; display:flex; align-items:center; gap:5px; }
+  .dot { width:6px; height:6px; border-radius:50%; background:var(--muted); }
+  .dot.ok { background:var(--safe); box-shadow:0 0 6px var(--safe); }
+  .dot.err { background:var(--danger); }
+
+  .main-section { padding:14px 16px; }
+  .instruction { font-size:11px; color:var(--muted); line-height:1.6; margin-bottom:12px; }
+  .instruction strong { color:var(--bloom2); font-weight:700; }
+
+  .analyze-btn { width:100%; background:linear-gradient(135deg,var(--bloom),#0044cc); border:none; border-radius:10px; color:white; font-family:'Syne',sans-serif; font-weight:700; font-size:13px; letter-spacing:0.5px; padding:12px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
+  .analyze-btn::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); transition:left 0.4s; }
+  .analyze-btn:hover::before { left:100%; }
+  .analyze-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(255,45,122,0.35); }
+  .analyze-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+  .result { margin:0 16px 12px; border-radius:10px; padding:14px; display:none; animation:slideIn 0.3s ease; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .result.safe { background:rgba(0,255,136,0.07); border:1px solid rgba(0,255,136,0.25); display:block; }
+  .result.warning { background:rgba(255,170,0,0.07); border:1px solid rgba(255,170,0,0.25); display:block; }
+  .result.danger { background:rgba(255,45,45,0.07); border:1px solid rgba(255,45,45,0.3); display:block; }
+  .result-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .threat-icon { font-size:20px; line-height:1; }
+  .threat-label { font-family:'Syne',sans-serif; font-weight:800; font-size:15px; }
+  .safe .threat-label { color:var(--safe); }
+  .warning .threat-label { color:var(--warn); }
+  .danger .threat-label { color:var(--danger); }
+  .threat-score { margin-left:auto; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; font-family:'Syne',sans-serif; }
+  .safe .threat-score { background:rgba(0,255,136,0.15); color:var(--safe); }
+  .warning .threat-score { background:rgba(255,170,0,0.15); color:var(--warn); }
+  .danger .threat-score { background:rgba(255,45,45,0.15); color:var(--danger); }
+  .result-body { font-size:11px; color:var(--text); line-height:1.7; opacity:0.85; }
+  .flags { margin-top:10px; display:flex; flex-wrap:wrap; gap:5px; }
+  .flag { font-size:9px; padding:3px 8px; border-radius:20px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; }
+  .flag.red { background:rgba(255,45,45,0.15); color:var(--danger); border:1px solid rgba(255,45,45,0.3); }
+  .flag.green { background:rgba(0,255,136,0.1); color:var(--safe); border:1px solid rgba(0,255,136,0.25); }
+
+  .loading { display:none; flex-direction:column; align-items:center; gap:10px; padding:16px; }
+  .loading.active { display:flex; }
+  .bloom-spinner { width:36px; height:36px; }
+  .bloom-spinner svg { width:36px; height:36px; animation:spin 2s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .loading-text { font-size:10px; color:var(--muted); animation:blink 1.5s ease-in-out infinite; text-align:center; max-width:200px; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* PRO banner */
+  .pro-banner { margin:0 16px 12px; background:linear-gradient(135deg,rgba(0,102,255,0.12),rgba(196,0,106,0.08)); border:1px solid rgba(0,102,255,0.3); border-radius:10px; padding:12px 14px; }
+  .pro-banner-title { font-family:'Syne',sans-serif; font-weight:800; font-size:12px; color:var(--bloom2); margin-bottom:4px; }
+  .pro-banner-text { font-size:10px; color:var(--muted); line-height:1.6; }
+  .pro-banner-link { display:inline-block; margin-top:8px; font-size:10px; font-weight:700; color:#fff; background:var(--bloom); padding:5px 14px; border-radius:20px; text-decoration:none; letter-spacing:0.3px; transition:opacity 0.2s; }
+  .pro-banner-link:hover { opacity:0.85; }
+
+  .footer { padding:8px 16px 10px; border-top:1px solid rgba(255,255,255,0.04); display:flex; justify-content:space-between; align-items:center; }
+  .footer-text { font-size:9px; color:var(--muted); }
+  .footer-text a { color:var(--bloom); text-decoration:none; }
+  .gmail-status { font-size:9px; display:flex; align-items:center; gap:4px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <img id="logoImg" class="logo-img" src="icons/logo_green.png" alt="offensive.bloom"/>
+    <div>
+      <div class="logo-text">offensive<span>.bloom</span></div>
+      <div class="made-by">by <a href="https://linktr.ee/offensive.bloom" target="_blank">offensive.bloom</a></div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px">
+    <div class="version">v1.0</div>
+    <button class="help-btn" id="helpBtn">?</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-label">OpenRouter API Key</div>
+  <div class="input-wrap">
+    <input type="password" id="apiKey" placeholder="sk-or-v1-••••••••••••••••"/>
+    <button class="save-btn" id="saveBtn">SAVE</button>
+  </div>
+  <div class="api-status">
+    <div class="dot" id="keyDot"></div>
+    <span id="keyStatus" style="font-size:10px;color:var(--muted)">No key saved</span>
+  </div>
+</div>
+
+<div class="main-section">
+  <p class="instruction">Open any email in <strong>Gmail</strong> then click below. AI will detect phishing, spam, or threats instantly.</p>
+  <button class="analyze-btn" id="analyzeBtn">🔍 Analyze Current Email</button>
+</div>
+
+<div class="loading" id="loading">
+  <div class="bloom-spinner">
+    <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" stroke="#0066ff" stroke-width="2" stroke-dasharray="44 44" stroke-linecap="round" fill="none"/></svg>
+  </div>
+  <div class="loading-text" id="loadingText">scanning...</div>
+</div>
+
+<div class="result" id="result">
+  <div class="result-header">
+    <div class="threat-icon" id="threatIcon"></div>
+    <div class="threat-label" id="threatLabel"></div>
+    <div class="threat-score" id="threatScore"></div>
+  </div>
+  <div class="result-body" id="resultBody"></div>
+  <div class="flags" id="flags"></div>
+</div>
+
+<!-- PRO BANNER -->
+<div class="pro-banner">
+  <div class="pro-banner-title">🚀 Want unlimited scans + Pro features?</div>
+  <div class="pro-banner-text">Contact us and we'll send you the <strong style="color:var(--bloom2)">Pro version</strong> within 24h — more models, no limits, priority support.</div>
+  <a class="pro-banner-link" href="https://linktr.ee/offensive.bloom" target="_blank">Contact us → linktr.ee/offensive.bloom</a>
+</div>
+
+<div class="footer">
+  <div class="footer-text">made by <a href="https://linktr.ee/offensive.bloom" target="_blank">offensive.bloom</a> · free & open source</div>
+  <div class="gmail-status">
+    <div class="dot" id="gmailDot"></div>
+    <span id="gmailStatus">checking...</span>
+  </div>
+</div>
+
+<!-- GUIDE OVERLAY -->
+<div class="guide-overlay" id="guideOverlay">
+  <div class="guide-box">
+    <div class="guide-header">
+      <div class="guide-title">🌸 How to use offensive.bloom</div>
+      <button class="guide-close" id="guideClose">×</button>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-num">1</div>
+      <div class="guide-step-text">Get a <strong>free API key</strong> at <strong>openrouter.ai</strong> — sign up, go to Keys, create one. Starts with <strong>sk-or-v1-...</strong></div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">2</div>
+      <div class="guide-step-text">Paste your key in the field above and click <strong>SAVE</strong>. You'll see <strong style="color:#00ff88">API key saved OK</strong>.</div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">3</div>
+      <div class="guide-step-text">Open <strong>Gmail</strong> in Chrome and click on any email you want to check.</div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">4</div>
+      <div class="guide-step-text">Click <strong>🔍 Analyze Current Email</strong> — the AI scans the email and gives you a result in seconds.</div>
+    </div>
+
+    <div class="guide-divider"></div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;text-transform:uppercase">What the results mean</div>
+
+    <div class="guide-verdict">
+      <span class="guide-badge" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.3)">✅ SAFE</span>
+      <span style="opacity:0.8">Email looks legitimate, no threats detected</span>
+    </div>
+    <div class="guide-verdict">
+      <span class="guide-badge" style="background:rgba(255,170,0,0.1);color:#ffaa00;border:1px solid rgba(255,170,0,0.3)">⚠️ SUSPICIOUS</span>
+      <span style="opacity:0.8">Something feels off — be careful before clicking</span>
+    </div>
+    <div class="guide-verdict">
+      <span class="guide-badge" style="background:rgba(255,45,45,0.1);color:#ff2d2d;border:1px solid rgba(255,45,45,0.3)">🚨 PHISHING</span>
+      <span style="opacity:0.8">Confirmed attack — do not click anything</span>
+    </div>
+
+    <div class="guide-divider"></div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;text-transform:uppercase">Free tier limits</div>
+    <div style="font-size:11px;color:var(--text);opacity:0.8;line-height:1.7">
+      The free plan allows ~50 scans/day across all models. If you hit the limit, come back tomorrow or upgrade to Pro for unlimited scans.
+    </div>
+
+    <div class="guide-divider"></div>
+    <a href="https://linktr.ee/offensive.bloom" target="_blank" style="display:block;text-align:center;background:linear-gradient(135deg,#0066ff,#0044cc);color:white;padding:10px;border-radius:10px;text-decoration:none;font-size:12px;font-weight:700;font-family:'Syne',sans-serif;letter-spacing:0.3px">
+      🚀 Get Pro — contact us at linktr.ee/offensive.bloom
+    </a>
+  </div>
+</div>
+
+<script src="src/popup.js"></script>
+</body>
+</html>
