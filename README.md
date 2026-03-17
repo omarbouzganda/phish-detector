@@ -216,7 +216,7 @@ bc1qex88c788lfmkhsp8djxzn5t5j8w4xq99e0mzf6
 
 ## 📄 License
 
-MIT — free to use, modify, and distribute.
+MIT — free to use.
 
 ---
 
